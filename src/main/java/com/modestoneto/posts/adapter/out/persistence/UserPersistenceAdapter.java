@@ -38,4 +38,14 @@ class UserPersistenceAdapter implements UserRepositoryPort {
             throw new ConflictException("E-mail já cadastrado: " + user.email());
         }
     }
+
+    @Override
+    public void deleteById(Long id) {
+        try {
+            repository.deleteById(id);
+            repository.flush();
+        } catch (DataIntegrityViolationException e) {
+            throw new ConflictException("Usuário possui posts e não pode ser removido: " + id);
+        }
+    }
 }

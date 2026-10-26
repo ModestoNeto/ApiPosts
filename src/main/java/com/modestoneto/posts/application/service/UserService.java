@@ -1,8 +1,10 @@
 package com.modestoneto.posts.application.service;
 
 import com.modestoneto.posts.application.port.in.CreateUserUseCase;
+import com.modestoneto.posts.application.port.in.DeleteUserUseCase;
 import com.modestoneto.posts.application.port.in.FindUserByIdUseCase;
 import com.modestoneto.posts.application.port.in.FindUsersUseCase;
+import com.modestoneto.posts.application.port.in.UpdateUserUseCase;
 import com.modestoneto.posts.application.port.out.UserRepositoryPort;
 import com.modestoneto.posts.domain.exception.ResourceNotFoundException;
 import com.modestoneto.posts.domain.model.User;
@@ -13,7 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class UserService implements FindUsersUseCase, FindUserByIdUseCase, CreateUserUseCase {
+public class UserService implements FindUsersUseCase, FindUserByIdUseCase, CreateUserUseCase,
+        UpdateUserUseCase, DeleteUserUseCase {
 
     private final UserRepositoryPort users;
 
@@ -36,5 +39,19 @@ public class UserService implements FindUsersUseCase, FindUserByIdUseCase, Creat
     @Transactional
     public User create(String name, String email) {
         return users.save(new User(null, name.trim(), email.trim().toLowerCase(), Instant.now()));
+    }
+
+    @Override
+    @Transactional
+    public User update(Long id, String name, String email) {
+        User current = findById(id);
+        return users.save(new User(id, name.trim(), email.trim().toLowerCase(), current.createdAt()));
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        findById(id);
+        users.deleteById(id);
     }
 }

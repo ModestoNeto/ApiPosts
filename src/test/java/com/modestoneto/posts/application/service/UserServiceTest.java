@@ -1,0 +1,70 @@
+package com.modestoneto.posts.application.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.modestoneto.posts.application.port.out.UserRepositoryPort;
+import com.modestoneto.posts.domain.exception.ResourceNotFoundException;
+import com.modestoneto.posts.domain.model.User;
+import java.time.Instant;
+import java.util.Optional;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
+class UserServiceTest {
+
+    @Mock
+    UserRepositoryPort users;
+
+    @InjectMocks
+    UserService service;
+
+    @Test
+    void createNormalizaDadosEDefineCreatedAt() {
+        when(users.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        User created = service.create("  Diego Alves ", "DIEGO@Exemplo.COM");
+
+        assertThat(created.name()).isEqualTo("Diego Alves");
+        assertThat(created.email()).isEqualTo("diego@exemplo.com");
+        assertThat(created.createdAt()).isNotNull();
+    }
+
+    @Test
+    void findByIdInexistenteLancaNotFound() {
+        when(users.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.findById(999L))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void updatePreservaCreatedAt() {
+        Instant createdAt = Instant.parse("2026-01-10T09:00:00Z");
+        when(users.findById(1L)).thenReturn(Optional.of(new User(1L, "Ana", "ana@exemplo.com", createdAt)));
+        when(users.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        User updated = service.update(1L, " Ana Maria ", "ANA@exemplo.com");
+
+        assertThat(updated.id()).isEqualTo(1L);
+        assertThat(updated.name()).isEqualTo("Ana Maria");
+        assertThat(updated.createdAt()).isEqualTo(createdAt);
+    }
+
+    @Test
+    void deleteInexistenteLancaNotFoundENaoRemove() {
+        when(users.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.delete(999L))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(users, never()).deleteById(any());
+    }
+}

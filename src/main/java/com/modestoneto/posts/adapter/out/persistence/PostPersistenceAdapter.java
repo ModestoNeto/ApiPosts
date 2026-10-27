@@ -23,9 +23,8 @@ class PostPersistenceAdapter implements PostRepositoryPort {
     @Override
     @Transactional
     public Post save(Post post) {
-        // referência sem consulta: o serviço já confirmou que o autor existe
-        UserJpaEntity author = users.getReferenceById(post.author().id());
-        return mapper.toDomain(posts.save(mapper.toEntity(post, author)));
+        // referências sem consulta: o serviço já confirmou que os autores existem
+        return mapper.toDomain(posts.save(mapper.toEntity(post, users::getReferenceById)));
     }
 
     @Override

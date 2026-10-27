@@ -8,6 +8,7 @@ import com.modestoneto.posts.domain.exception.ResourceNotFoundException;
 import com.modestoneto.posts.domain.model.Post;
 import com.modestoneto.posts.domain.model.User;
 import java.time.Instant;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +29,7 @@ public class PostService implements CreatePostUseCase, FindPostByIdUseCase {
     public Post create(Long authorId, String title, String body) {
         User author = users.findById(authorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Autor não encontrado: " + authorId));
-        return posts.save(new Post(null, author, title.trim(), body.trim(), Instant.now()));
+        return posts.save(new Post(null, author, title.trim(), body.trim(), Instant.now(), List.of()));
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.modestoneto.posts.adapter.out.persistence;
 
 import com.modestoneto.posts.domain.model.Post;
+import java.util.List;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,7 +16,7 @@ class PostMapper {
     // Lê o autor LAZY: só pode ser chamado dentro da transação do adaptador.
     Post toDomain(PostJpaEntity entity) {
         return new Post(entity.getId(), userMapper.toDomain(entity.getAuthor()),
-                entity.getTitle(), entity.getBody(), entity.getCreatedAt());
+                entity.getTitle(), entity.getBody(), entity.getCreatedAt(), List.of());
     }
 
     PostJpaEntity toEntity(Post post, UserJpaEntity author) {

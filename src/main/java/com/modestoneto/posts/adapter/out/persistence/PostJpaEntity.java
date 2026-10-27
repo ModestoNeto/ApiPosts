@@ -5,11 +5,16 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "posts")
@@ -32,6 +37,10 @@ class PostJpaEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt, id")
+    private List<CommentJpaEntity> comments = new ArrayList<>();
+
     protected PostJpaEntity() {
     }
 
@@ -48,4 +57,5 @@ class PostJpaEntity {
     String getTitle() { return title; }
     String getBody() { return body; }
     Instant getCreatedAt() { return createdAt; }
+    List<CommentJpaEntity> getComments() { return comments; }
 }

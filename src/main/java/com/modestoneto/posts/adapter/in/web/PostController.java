@@ -1,10 +1,12 @@
 package com.modestoneto.posts.adapter.in.web;
 
+import com.modestoneto.posts.application.port.in.AddCommentUseCase;
 import com.modestoneto.posts.application.port.in.CreatePostUseCase;
 import com.modestoneto.posts.application.port.in.FindPostByIdUseCase;
 import com.modestoneto.posts.domain.model.Post;
 import jakarta.validation.Valid;
 import java.net.URI;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,10 +22,13 @@ class PostController {
 
     private final CreatePostUseCase createPost;
     private final FindPostByIdUseCase findPostById;
+    private final AddCommentUseCase addComment;
 
-    PostController(CreatePostUseCase createPost, FindPostByIdUseCase findPostById) {
+    PostController(CreatePostUseCase createPost, FindPostByIdUseCase findPostById,
+                   AddCommentUseCase addComment) {
         this.createPost = createPost;
         this.findPostById = findPostById;
+        this.addComment = addComment;
     }
 
     @PostMapping
@@ -37,5 +42,11 @@ class PostController {
     @GetMapping("/{id}")
     PostResponse findById(@PathVariable Long id) {
         return PostResponse.from(findPostById.findById(id));
+    }
+
+    @PostMapping("/{id}/comments")
+    ResponseEntity<PostResponse> addComment(@PathVariable Long id, @Valid @RequestBody AddCommentRequest request) {
+        Post post = addComment.addComment(id, request.authorId(), request.text());
+        return ResponseEntity.status(HttpStatus.CREATED).body(PostResponse.from(post));
     }
 }

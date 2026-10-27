@@ -2,6 +2,7 @@ package com.modestoneto.posts.adapter.out.persistence;
 
 import com.modestoneto.posts.application.port.out.PostRepositoryPort;
 import com.modestoneto.posts.domain.model.Post;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,13 +24,17 @@ class PostPersistenceAdapter implements PostRepositoryPort {
     @Override
     @Transactional
     public Post save(Post post) {
-        // referência sem consulta: o serviço já confirmou que o autor existe
-        UserJpaEntity author = users.getReferenceById(post.author().id());
-        return mapper.toDomain(posts.save(mapper.toEntity(post, author)));
+        // referências sem consulta: o serviço já confirmou que os autores existem
+        return mapper.toDomain(posts.save(mapper.toEntity(post, users::getReferenceById)));
     }
 
     @Override
     public Optional<Post> findById(Long id) {
         return posts.findById(id).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<Post> findAll() {
+        return posts.findAll().stream().map(mapper::toDomain).toList();
     }
 }

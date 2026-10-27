@@ -1,5 +1,6 @@
 package com.modestoneto.posts.application.service;
 
+import com.modestoneto.posts.application.port.in.AddCommentUseCase;
 import com.modestoneto.posts.application.port.in.CreatePostUseCase;
 import com.modestoneto.posts.application.port.in.FindPostByIdUseCase;
 import com.modestoneto.posts.application.port.out.PostRepositoryPort;
@@ -8,12 +9,13 @@ import com.modestoneto.posts.domain.exception.ResourceNotFoundException;
 import com.modestoneto.posts.domain.model.Post;
 import com.modestoneto.posts.domain.model.User;
 import java.time.Instant;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class PostService implements CreatePostUseCase, FindPostByIdUseCase {
+public class PostService implements CreatePostUseCase, FindPostByIdUseCase, AddCommentUseCase {
 
     private final PostRepositoryPort posts;
     private final UserRepositoryPort users;
@@ -28,12 +30,21 @@ public class PostService implements CreatePostUseCase, FindPostByIdUseCase {
     public Post create(Long authorId, String title, String body) {
         User author = users.findById(authorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Autor não encontrado: " + authorId));
-        return posts.save(new Post(null, author, title.trim(), body.trim(), Instant.now()));
+        return posts.save(new Post(null, author, title.trim(), body.trim(), Instant.now(), List.of()));
     }
 
     @Override
     public Post findById(Long id) {
         return posts.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Post não encontrado: " + id));
+    }
+
+    @Override
+    @Transactional
+    public Post addComment(Long postId, Long authorId, String text) {
+        Post post = findById(postId);
+        User author = users.findById(authorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Autor não encontrado: " + authorId));
+        return posts.save(post.addComment(author, text, Instant.now()));
     }
 }

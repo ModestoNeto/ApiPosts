@@ -38,4 +38,10 @@ class PostPersistenceAdapter implements PostRepositoryPort {
     public PageResult<Post> findByAuthorId(Long authorId, PageRequest request) {
         return PageConversions.toResult(posts.findByAuthorId(authorId, PageConversions.toPageable(request)), mapper::toDomain);
     }
+
+    @Override
+    public PageResult<Post> searchByTitle(String title, PageRequest request) {
+        return PageConversions.toResult(
+                posts.findByTitleContainingIgnoreCase(title, PageConversions.toPageable(request)), mapper::toDomain);
+    }
 }

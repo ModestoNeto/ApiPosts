@@ -12,4 +12,6 @@ public interface PostRepositoryPort {
     Optional<Post> findById(Long id);
 
     PageResult<Post> findByAuthorId(Long authorId, PageRequest request);
+
+    PageResult<Post> searchByTitle(String title, PageRequest request);
 }

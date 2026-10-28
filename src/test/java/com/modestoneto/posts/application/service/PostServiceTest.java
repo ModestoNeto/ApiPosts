@@ -128,4 +128,28 @@ class PostServiceTest {
                 .isInstanceOf(InvalidRequestException.class);
         verify(posts, never()).findByAuthorId(any(), any());
     }
+
+    @Test
+    void searchByTitleRemoveEspacosERepassaParaAPorta() {
+        var request = new PageRequest(0, 10, "createdAt", SortDirection.DESC);
+        var page = new PageResult<Post>(java.util.List.of(), 0, 0, 10);
+        when(posts.searchByTitle("spring", request)).thenReturn(page);
+
+        assertThat(service.searchByTitle("  spring ", request)).isSameAs(page);
+    }
+
+    @Test
+    void searchByTitleEmBrancoLancaInvalidRequestENaoConsultaOBanco() {
+        var request = new PageRequest(0, 10, "createdAt", SortDirection.DESC);
+
+        assertThatThrownBy(() -> service.searchByTitle("   ", request)).isInstanceOf(InvalidRequestException.class);
+        verify(posts, never()).searchByTitle(any(), any());
+    }
+
+    @Test
+    void searchByTitleComCampoNaoPermitidoLancaInvalidRequest() {
+        assertThatThrownBy(() -> service.searchByTitle("x", new PageRequest(0, 10, "body", SortDirection.ASC)))
+                .isInstanceOf(InvalidRequestException.class);
+        verify(posts, never()).searchByTitle(any(), any());
+    }
 }

@@ -6,8 +6,10 @@ import com.modestoneto.posts.application.port.in.AddCommentUseCase;
 import com.modestoneto.posts.application.port.in.CreatePostUseCase;
 import com.modestoneto.posts.application.port.in.FindPostByIdUseCase;
 import com.modestoneto.posts.application.port.in.FindPostsByAuthorUseCase;
+import com.modestoneto.posts.application.port.in.SearchPostsByTitleUseCase;
 import com.modestoneto.posts.application.port.out.PostRepositoryPort;
 import com.modestoneto.posts.application.port.out.UserRepositoryPort;
+import com.modestoneto.posts.domain.exception.InvalidRequestException;
 import com.modestoneto.posts.domain.exception.ResourceNotFoundException;
 import com.modestoneto.posts.domain.model.Post;
 import com.modestoneto.posts.domain.model.User;
@@ -20,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class PostService implements CreatePostUseCase, FindPostByIdUseCase, AddCommentUseCase,
-        FindPostsByAuthorUseCase {
+        FindPostsByAuthorUseCase, SearchPostsByTitleUseCase {
 
     static final Set<String> SORT_FIELDS = Set.of("title", "createdAt");
 
@@ -61,5 +63,14 @@ public class PostService implements CreatePostUseCase, FindPostByIdUseCase, AddC
         users.findById(authorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado: " + authorId));
         return posts.findByAuthorId(authorId, request);
+    }
+
+    @Override
+    public PageResult<Post> searchByTitle(String title, PageRequest request) {
+        request.requireSortIn(SORT_FIELDS);
+        if (title.isBlank()) {
+            throw new InvalidRequestException("title não pode estar em branco");
+        }
+        return posts.searchByTitle(title.trim(), request);
     }
 }

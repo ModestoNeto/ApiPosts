@@ -3,6 +3,7 @@ package com.modestoneto.posts.adapter.in.web;
 import com.modestoneto.posts.application.port.in.AddCommentUseCase;
 import com.modestoneto.posts.application.port.in.CreatePostUseCase;
 import com.modestoneto.posts.application.port.in.FindPostByIdUseCase;
+import com.modestoneto.posts.application.port.in.SearchPostsByTitleUseCase;
 import com.modestoneto.posts.domain.model.Post;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -23,12 +25,14 @@ class PostController {
     private final CreatePostUseCase createPost;
     private final FindPostByIdUseCase findPostById;
     private final AddCommentUseCase addComment;
+    private final SearchPostsByTitleUseCase searchPostsByTitle;
 
     PostController(CreatePostUseCase createPost, FindPostByIdUseCase findPostById,
-                   AddCommentUseCase addComment) {
+                   AddCommentUseCase addComment, SearchPostsByTitleUseCase searchPostsByTitle) {
         this.createPost = createPost;
         this.findPostById = findPostById;
         this.addComment = addComment;
+        this.searchPostsByTitle = searchPostsByTitle;
     }
 
     @PostMapping
@@ -48,5 +52,13 @@ class PostController {
     ResponseEntity<PostResponse> addComment(@PathVariable Long id, @Valid @RequestBody AddCommentRequest request) {
         Post post = addComment.addComment(id, request.authorId(), request.text());
         return ResponseEntity.status(HttpStatus.CREATED).body(PostResponse.from(post));
+    }
+
+    @GetMapping("/search/title")
+    PageResponse<PostResponse> searchByTitle(@RequestParam String title,
+                                             @RequestParam(defaultValue = "0") int page,
+                                             @RequestParam(defaultValue = "20") int size,
+                                             @RequestParam(defaultValue = "createdAt,desc") String sort) {
+        return PageResponse.from(searchPostsByTitle.searchByTitle(title, PageParams.of(page, size, sort)), PostResponse::from);
     }
 }

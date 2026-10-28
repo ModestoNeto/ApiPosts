@@ -7,10 +7,15 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.modestoneto.posts.application.common.PageRequest;
+import com.modestoneto.posts.application.common.PageResult;
+import com.modestoneto.posts.application.common.SortDirection;
 import com.modestoneto.posts.application.port.out.UserRepositoryPort;
+import com.modestoneto.posts.domain.exception.InvalidRequestException;
 import com.modestoneto.posts.domain.exception.ResourceNotFoundException;
 import com.modestoneto.posts.domain.model.User;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -66,5 +71,22 @@ class UserServiceTest {
         assertThatThrownBy(() -> service.delete(999L))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(users, never()).deleteById(any());
+    }
+
+    @Test
+    void findAllComCampoPermitidoRepassaOPedidoParaAPorta() {
+        var request = new PageRequest(0, 10, "name", SortDirection.ASC);
+        var page = new PageResult<User>(List.of(), 0, 0, 10);
+        when(users.findAll(request)).thenReturn(page);
+
+        assertThat(service.findAll(request)).isSameAs(page);
+    }
+
+    @Test
+    void findAllComCampoNaoPermitidoLancaInvalidRequestENaoConsultaOBanco() {
+        var request = new PageRequest(0, 10, "email", SortDirection.ASC);
+
+        assertThatThrownBy(() -> service.findAll(request)).isInstanceOf(InvalidRequestException.class);
+        verify(users, never()).findAll(any());
     }
 }

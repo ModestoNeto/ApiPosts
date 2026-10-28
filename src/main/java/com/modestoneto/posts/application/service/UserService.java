@@ -1,5 +1,7 @@
 package com.modestoneto.posts.application.service;
 
+import com.modestoneto.posts.application.common.PageRequest;
+import com.modestoneto.posts.application.common.PageResult;
 import com.modestoneto.posts.application.port.in.CreateUserUseCase;
 import com.modestoneto.posts.application.port.in.DeleteUserUseCase;
 import com.modestoneto.posts.application.port.in.FindUserByIdUseCase;
@@ -9,7 +11,7 @@ import com.modestoneto.posts.application.port.out.UserRepositoryPort;
 import com.modestoneto.posts.domain.exception.ResourceNotFoundException;
 import com.modestoneto.posts.domain.model.User;
 import java.time.Instant;
-import java.util.List;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService implements FindUsersUseCase, FindUserByIdUseCase, CreateUserUseCase,
         UpdateUserUseCase, DeleteUserUseCase {
 
+    static final Set<String> SORT_FIELDS = Set.of("name", "createdAt");
+
     private final UserRepositoryPort users;
 
     public UserService(UserRepositoryPort users) {
@@ -25,8 +29,8 @@ public class UserService implements FindUsersUseCase, FindUserByIdUseCase, Creat
     }
 
     @Override
-    public List<User> findAll() {
-        return users.findAll();
+    public PageResult<User> findAll(PageRequest request) {
+        return users.findAll(request.requireSortIn(SORT_FIELDS));
     }
 
     @Override

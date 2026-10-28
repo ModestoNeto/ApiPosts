@@ -8,13 +8,13 @@ import com.modestoneto.posts.application.port.in.UpdateUserUseCase;
 import com.modestoneto.posts.domain.model.User;
 import jakarta.validation.Valid;
 import java.net.URI;
-import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,8 +41,10 @@ class UserController {
     }
 
     @GetMapping
-    List<UserResponse> findAll() {
-        return findUsers.findAll().stream().map(UserResponse::from).toList();
+    PageResponse<UserResponse> findAll(@RequestParam(defaultValue = "0") int page,
+                                       @RequestParam(defaultValue = "20") int size,
+                                       @RequestParam(defaultValue = "createdAt,desc") String sort) {
+        return PageResponse.from(findUsers.findAll(PageParams.of(page, size, sort)), UserResponse::from);
     }
 
     @GetMapping("/{id}")

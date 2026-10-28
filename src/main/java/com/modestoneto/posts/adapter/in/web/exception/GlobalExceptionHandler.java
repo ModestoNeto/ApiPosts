@@ -1,6 +1,7 @@
 package com.modestoneto.posts.adapter.in.web.exception;
 
 import com.modestoneto.posts.domain.exception.ConflictException;
+import com.modestoneto.posts.domain.exception.InvalidRequestException;
 import com.modestoneto.posts.domain.exception.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
@@ -24,6 +25,11 @@ class GlobalExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     ResponseEntity<StandardError> conflict(ConflictException e, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, e.getMessage(), request);
+    }
+
+    @ExceptionHandler(InvalidRequestException.class)
+    ResponseEntity<StandardError> invalidRequest(InvalidRequestException e, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, e.getMessage(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

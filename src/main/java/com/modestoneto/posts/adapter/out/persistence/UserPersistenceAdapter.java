@@ -3,7 +3,8 @@ package com.modestoneto.posts.adapter.out.persistence;
 import com.modestoneto.posts.application.port.out.UserRepositoryPort;
 import com.modestoneto.posts.domain.exception.ConflictException;
 import com.modestoneto.posts.domain.model.User;
-import java.util.List;
+import com.modestoneto.posts.application.common.PageRequest;
+import com.modestoneto.posts.application.common.PageResult;
 import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
@@ -20,8 +21,8 @@ class UserPersistenceAdapter implements UserRepositoryPort {
     }
 
     @Override
-    public List<User> findAll() {
-        return repository.findAll().stream().map(mapper::toDomain).toList();
+    public PageResult<User> findAll(PageRequest request) {
+        return PageConversions.toResult(repository.findAll(PageConversions.toPageable(request)), mapper::toDomain);
     }
 
     @Override

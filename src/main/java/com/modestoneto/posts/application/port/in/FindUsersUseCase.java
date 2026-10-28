@@ -1,9 +1,10 @@
 package com.modestoneto.posts.application.port.in;
 
 import com.modestoneto.posts.domain.model.User;
-import java.util.List;
+import com.modestoneto.posts.application.common.PageRequest;
+import com.modestoneto.posts.application.common.PageResult;
 
 public interface FindUsersUseCase {
 
-    List<User> findAll();
+    PageResult<User> findAll(PageRequest request);
 }

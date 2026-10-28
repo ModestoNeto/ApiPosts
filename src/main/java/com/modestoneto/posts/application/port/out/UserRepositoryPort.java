@@ -1,12 +1,13 @@
 package com.modestoneto.posts.application.port.out;
 
 import com.modestoneto.posts.domain.model.User;
-import java.util.List;
+import com.modestoneto.posts.application.common.PageRequest;
+import com.modestoneto.posts.application.common.PageResult;
 import java.util.Optional;
 
 public interface UserRepositoryPort {
 
-    List<User> findAll();
+    PageResult<User> findAll(PageRequest request);
 
     Optional<User> findById(Long id);
 

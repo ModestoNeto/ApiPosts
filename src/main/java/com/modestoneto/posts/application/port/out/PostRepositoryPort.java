@@ -1,7 +1,8 @@
 package com.modestoneto.posts.application.port.out;
 
+import com.modestoneto.posts.application.common.PageRequest;
+import com.modestoneto.posts.application.common.PageResult;
 import com.modestoneto.posts.domain.model.Post;
-import java.util.List;
 import java.util.Optional;
 
 public interface PostRepositoryPort {
@@ -10,5 +11,5 @@ public interface PostRepositoryPort {
 
     Optional<Post> findById(Long id);
 
-    List<Post> findAll();
+    PageResult<Post> findByAuthorId(Long authorId, PageRequest request);
 }

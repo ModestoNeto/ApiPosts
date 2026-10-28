@@ -1,8 +1,9 @@
 package com.modestoneto.posts.adapter.out.persistence;
 
+import com.modestoneto.posts.application.common.PageRequest;
+import com.modestoneto.posts.application.common.PageResult;
 import com.modestoneto.posts.application.port.out.PostRepositoryPort;
 import com.modestoneto.posts.domain.model.Post;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +35,7 @@ class PostPersistenceAdapter implements PostRepositoryPort {
     }
 
     @Override
-    public List<Post> findAll() {
-        return posts.findAll().stream().map(mapper::toDomain).toList();
+    public PageResult<Post> findByAuthorId(Long authorId, PageRequest request) {
+        return PageConversions.toResult(posts.findByAuthorId(authorId, PageConversions.toPageable(request)), mapper::toDomain);
     }
 }

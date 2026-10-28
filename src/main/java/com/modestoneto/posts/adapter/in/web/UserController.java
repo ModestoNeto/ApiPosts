@@ -2,6 +2,7 @@ package com.modestoneto.posts.adapter.in.web;
 
 import com.modestoneto.posts.application.port.in.CreateUserUseCase;
 import com.modestoneto.posts.application.port.in.DeleteUserUseCase;
+import com.modestoneto.posts.application.port.in.FindPostsByAuthorUseCase;
 import com.modestoneto.posts.application.port.in.FindUserByIdUseCase;
 import com.modestoneto.posts.application.port.in.FindUsersUseCase;
 import com.modestoneto.posts.application.port.in.UpdateUserUseCase;
@@ -29,15 +30,17 @@ class UserController {
     private final CreateUserUseCase createUser;
     private final UpdateUserUseCase updateUser;
     private final DeleteUserUseCase deleteUser;
+    private final FindPostsByAuthorUseCase findPostsByAuthor;
 
     UserController(FindUsersUseCase findUsers, FindUserByIdUseCase findUserById,
                    CreateUserUseCase createUser, UpdateUserUseCase updateUser,
-                   DeleteUserUseCase deleteUser) {
+                   DeleteUserUseCase deleteUser, FindPostsByAuthorUseCase findPostsByAuthor) {
         this.findUsers = findUsers;
         this.findUserById = findUserById;
         this.createUser = createUser;
         this.updateUser = updateUser;
         this.deleteUser = deleteUser;
+        this.findPostsByAuthor = findPostsByAuthor;
     }
 
     @GetMapping
@@ -69,5 +72,13 @@ class UserController {
     ResponseEntity<Void> delete(@PathVariable Long id) {
         deleteUser.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/posts")
+    PageResponse<PostResponse> findPosts(@PathVariable Long id,
+                                         @RequestParam(defaultValue = "0") int page,
+                                         @RequestParam(defaultValue = "20") int size,
+                                         @RequestParam(defaultValue = "createdAt,desc") String sort) {
+        return PageResponse.from(findPostsByAuthor.findByAuthor(id, PageParams.of(page, size, sort)), PostResponse::from);
     }
 }

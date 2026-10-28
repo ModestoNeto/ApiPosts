@@ -1,5 +1,7 @@
 package com.modestoneto.posts.adapter.out.persistence;
 
+import com.modestoneto.posts.application.common.PageRequest;
+import com.modestoneto.posts.application.common.PageResult;
 import com.modestoneto.posts.application.port.out.PostRepositoryPort;
 import com.modestoneto.posts.domain.model.Post;
 import java.util.List;
@@ -36,5 +38,10 @@ class PostPersistenceAdapter implements PostRepositoryPort {
     @Override
     public List<Post> findAll() {
         return posts.findAll().stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public PageResult<Post> findByAuthorId(Long authorId, PageRequest request) {
+        return PageConversions.toResult(posts.findByAuthorId(authorId, PageConversions.toPageable(request)), mapper::toDomain);
     }
 }

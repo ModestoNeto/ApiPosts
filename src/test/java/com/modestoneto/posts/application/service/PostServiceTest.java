@@ -7,8 +7,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.modestoneto.posts.application.common.PageRequest;
+import com.modestoneto.posts.application.common.PageResult;
+import com.modestoneto.posts.application.common.SortDirection;
 import com.modestoneto.posts.application.port.out.PostRepositoryPort;
 import com.modestoneto.posts.application.port.out.UserRepositoryPort;
+import com.modestoneto.posts.domain.exception.InvalidRequestException;
 import com.modestoneto.posts.domain.exception.ResourceNotFoundException;
 import com.modestoneto.posts.domain.model.Post;
 import com.modestoneto.posts.domain.model.User;
@@ -96,5 +100,32 @@ class PostServiceTest {
         assertThatThrownBy(() -> service.addComment(1L, 999L, "x"))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(posts, never()).save(any());
+    }
+
+    @Test
+    void findByAuthorRepassaOPedidoParaAPorta() {
+        User author = new User(1L, "Ana", "ana@exemplo.com", Instant.now());
+        var request = new PageRequest(0, 10, "createdAt", SortDirection.DESC);
+        var page = new PageResult<Post>(java.util.List.of(), 0, 0, 10);
+        when(users.findById(1L)).thenReturn(Optional.of(author));
+        when(posts.findByAuthorId(1L, request)).thenReturn(page);
+
+        assertThat(service.findByAuthor(1L, request)).isSameAs(page);
+    }
+
+    @Test
+    void findByAuthorComUsuarioInexistenteLancaNotFoundENaoConsultaPosts() {
+        when(users.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.findByAuthor(999L, new PageRequest(0, 10, "createdAt", SortDirection.DESC)))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(posts, never()).findByAuthorId(any(), any());
+    }
+
+    @Test
+    void findByAuthorComCampoNaoPermitidoLancaInvalidRequest() {
+        assertThatThrownBy(() -> service.findByAuthor(1L, new PageRequest(0, 10, "body", SortDirection.ASC)))
+                .isInstanceOf(InvalidRequestException.class);
+        verify(posts, never()).findByAuthorId(any(), any());
     }
 }

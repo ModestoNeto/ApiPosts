@@ -4,9 +4,12 @@ import com.modestoneto.posts.application.port.in.AddCommentUseCase;
 import com.modestoneto.posts.application.port.in.CreatePostUseCase;
 import com.modestoneto.posts.application.port.in.FindPostByIdUseCase;
 import com.modestoneto.posts.application.port.in.SearchPostsByTitleUseCase;
+import com.modestoneto.posts.application.port.in.SearchPostsUseCase;
 import com.modestoneto.posts.domain.model.Post;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,13 +29,16 @@ class PostController {
     private final FindPostByIdUseCase findPostById;
     private final AddCommentUseCase addComment;
     private final SearchPostsByTitleUseCase searchPostsByTitle;
+    private final SearchPostsUseCase searchPosts;
 
     PostController(CreatePostUseCase createPost, FindPostByIdUseCase findPostById,
-                   AddCommentUseCase addComment, SearchPostsByTitleUseCase searchPostsByTitle) {
+                   AddCommentUseCase addComment, SearchPostsByTitleUseCase searchPostsByTitle,
+                   SearchPostsUseCase searchPosts) {
         this.createPost = createPost;
         this.findPostById = findPostById;
         this.addComment = addComment;
         this.searchPostsByTitle = searchPostsByTitle;
+        this.searchPosts = searchPosts;
     }
 
     @PostMapping
@@ -60,5 +66,15 @@ class PostController {
                                              @RequestParam(defaultValue = "20") int size,
                                              @RequestParam(defaultValue = "createdAt,desc") String sort) {
         return PageResponse.from(searchPostsByTitle.searchByTitle(title, PageParams.of(page, size, sort)), PostResponse::from);
+    }
+
+    @GetMapping("/search")
+    PageResponse<PostResponse> search(@RequestParam(required = false) String text,
+                                      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate minDate,
+                                      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate maxDate,
+                                      @RequestParam(defaultValue = "0") int page,
+                                      @RequestParam(defaultValue = "20") int size,
+                                      @RequestParam(defaultValue = "createdAt,desc") String sort) {
+        return PageResponse.from(searchPosts.search(text, minDate, maxDate, PageParams.of(page, size, sort)), PostResponse::from);
     }
 }

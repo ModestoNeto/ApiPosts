@@ -4,7 +4,6 @@ import com.modestoneto.posts.application.common.PageRequest;
 import com.modestoneto.posts.application.common.PageResult;
 import com.modestoneto.posts.application.port.out.PostRepositoryPort;
 import com.modestoneto.posts.domain.model.Post;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,11 +32,6 @@ class PostPersistenceAdapter implements PostRepositoryPort {
     @Override
     public Optional<Post> findById(Long id) {
         return posts.findById(id).map(mapper::toDomain);
-    }
-
-    @Override
-    public List<Post> findAll() {
-        return posts.findAll().stream().map(mapper::toDomain).toList();
     }
 
     @Override

@@ -58,7 +58,7 @@ Listagem de 6 posts com 13 comentários e seus autores, medida pelo log SQL do H
 
 | | Queries por listagem |
 |---|---|
-| Antes (`findAll` padrão, tudo LAZY) | **10** (1 de posts + 6 de comentários + 3 de autores) |
+| Antes (listagem padrão, tudo LAZY) | **10** (1 de posts + 6 de comentários + 3 de autores) |
 | Depois (`@EntityGraph` com `author`, `comments`, `comments.author`) | **1** |
 
 A correção fica no repositório do adaptador, sem tocar no domínio.
@@ -66,12 +66,13 @@ A correção fica no repositório do adaptador, sem tocar no domínio.
 ## Endpoints
 | Método | Rota | Resposta |
 |---|---|---|
-| GET | `/users` | 200, lista de usuários |
+| GET | `/users?page=&size=&sort=` | 200, página de usuários (`sort`: `name` ou `createdAt`, padrão `createdAt,desc`; `size` de 1 a 100), ou 400 |
 | GET | `/users/{id}` | 200, ou 404 |
 | POST | `/users` | 201, ou 400 (validação) e 409 (e-mail repetido) |
 | PUT | `/users/{id}` | 200, ou 404 e 409 |
 | DELETE | `/users/{id}` | 204, ou 404 e 409 (usuário com posts ou comentários) |
 | POST | `/posts` | 201 com `Location`, ou 400 e 404 (autor inexistente) |
+| GET | `/users/{id}/posts?page=&size=&sort=` | 200, página de posts com comentários (`sort`: `title` ou `createdAt`), ou 400 e 404 |
 | GET | `/posts/{id}` | 200 com autor e comentários, ou 404 |
 | POST | `/posts/{id}/comments` | 201 com o post inteiro, ou 400 e 404 (post ou autor inexistente) |
 

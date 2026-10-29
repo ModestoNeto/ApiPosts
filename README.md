@@ -73,7 +73,10 @@ A correção fica no repositório do adaptador, sem tocar no domínio.
 | DELETE | `/users/{id}` | 204, ou 404 e 409 (usuário com posts ou comentários) |
 | POST | `/posts` | 201 com `Location`, ou 400 e 404 (autor inexistente) |
 | GET | `/users/{id}/posts?page=&size=&sort=` | 200, página de posts com comentários (`sort`: `title` ou `createdAt`), ou 400 e 404 |
+| GET | `/users/ranking?limit=` | 200, autores por número de posts (`limit` de 1 a 100, padrão 10; inclui quem tem 0), ou 400 |
 | GET | `/posts/{id}` | 200 com autor e comentários, ou 404 |
+| GET | `/posts/search/title?title=&page=&size=&sort=` | 200, página de posts cujo título contém o texto, ou 400 (título em branco ou ausente) |
+| GET | `/posts/search?text=&minDate=&maxDate=&page=&size=&sort=` | 200, página de posts; todos os filtros são opcionais, ou 400 (data inválida, `minDate` > `maxDate`) |
 | POST | `/posts/{id}/comments` | 201 com o post inteiro, ou 400 e 404 (post ou autor inexistente) |
 
 Erros seguem o formato `{timestamp, status, error, message, path}`.
@@ -87,3 +90,11 @@ Erros seguem o formato `{timestamp, status, error, message, path}`.
 | `@EntityGraph(author, comments, comments.author)` | **2** (usuário + posts com joins) |
 
 Em versões anteriores do Hibernate o comportamento pode ser outro. Vale repetir a verificação no log ao atualizar.
+
+## Buscas: JPQL e SQL nativo
+- **Por título:** query method do Spring Data (`findByTitleContainingIgnoreCase`). O Spring escapa `%` e `_`, então o texto do usuário é sempre literal.
+- **Busca completa (JPQL):** o texto vale para título, corpo ou comentários, com intervalo de datas. Os comentários entram por `EXISTS` e não por `JOIN`: o `JOIN` repetiria o post que tem vários comentários batendo e quebraria o total da paginação. Parâmetros nulos com `(:p is null or ...)` funcionaram no Hibernate 7.4.5 com MySQL, com e sem cada filtro.
+- **Ranking (SQL nativo):** `GET /users/ranking` usa `LEFT JOIN` e `GROUP BY` direto no MySQL. A projeção do Spring Data fica dentro do adaptador e é convertida para `AuthorRanking` (tipo de domínio), então a porta nunca devolve tipos do framework.
+- **Datas** em ISO 8601 (`AAAA-MM-DD`), interpretadas em **UTC**. `minDate` e `maxDate` incluem o dia inteiro.
+- **Maiúsculas e acentos:** o MySQL 8 usa a collation `utf8mb4_0900_ai_ci`, que ignora os dois. Buscar `paginacao` encontra "Paginação".
+- **Limite:** `lower(...) like` não usa índice, então a busca varre a tabela. Para volume maior, o caminho é um índice `FULLTEXT`.

@@ -3,6 +3,7 @@ package com.modestoneto.posts.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,6 +14,7 @@ import com.modestoneto.posts.application.common.SortDirection;
 import com.modestoneto.posts.application.port.out.UserRepositoryPort;
 import com.modestoneto.posts.domain.exception.InvalidRequestException;
 import com.modestoneto.posts.domain.exception.ResourceNotFoundException;
+import com.modestoneto.posts.domain.model.AuthorRanking;
 import com.modestoneto.posts.domain.model.User;
 import java.time.Instant;
 import java.util.List;
@@ -88,5 +90,20 @@ class UserServiceTest {
 
         assertThatThrownBy(() -> service.findAll(request)).isInstanceOf(InvalidRequestException.class);
         verify(users, never()).findAll(any());
+    }
+
+    @Test
+    void rankingRepassaOLimiteParaAPorta() {
+        var ranking = List.of(new AuthorRanking(1L, "Ana", 2));
+        when(users.ranking(5)).thenReturn(ranking);
+
+        assertThat(service.ranking(5)).isEqualTo(ranking);
+    }
+
+    @Test
+    void rankingComLimiteForaDoIntervaloLancaInvalidRequestENaoConsultaOBanco() {
+        assertThatThrownBy(() -> service.ranking(0)).isInstanceOf(InvalidRequestException.class);
+        assertThatThrownBy(() -> service.ranking(101)).isInstanceOf(InvalidRequestException.class);
+        verify(users, never()).ranking(anyInt());
     }
 }

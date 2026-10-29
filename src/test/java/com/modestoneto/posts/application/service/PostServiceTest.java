@@ -17,6 +17,7 @@ import com.modestoneto.posts.domain.exception.ResourceNotFoundException;
 import com.modestoneto.posts.domain.model.Post;
 import com.modestoneto.posts.domain.model.User;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -127,5 +128,58 @@ class PostServiceTest {
         assertThatThrownBy(() -> service.findByAuthor(1L, new PageRequest(0, 10, "body", SortDirection.ASC)))
                 .isInstanceOf(InvalidRequestException.class);
         verify(posts, never()).findByAuthorId(any(), any());
+    }
+
+    @Test
+    void searchByTitleRemoveEspacosERepassaParaAPorta() {
+        var request = new PageRequest(0, 10, "createdAt", SortDirection.DESC);
+        var page = new PageResult<Post>(java.util.List.of(), 0, 0, 10);
+        when(posts.searchByTitle("spring", request)).thenReturn(page);
+
+        assertThat(service.searchByTitle("  spring ", request)).isSameAs(page);
+    }
+
+    @Test
+    void searchByTitleEmBrancoLancaInvalidRequestENaoConsultaOBanco() {
+        var request = new PageRequest(0, 10, "createdAt", SortDirection.DESC);
+
+        assertThatThrownBy(() -> service.searchByTitle("   ", request)).isInstanceOf(InvalidRequestException.class);
+        verify(posts, never()).searchByTitle(any(), any());
+    }
+
+    @Test
+    void searchByTitleComCampoNaoPermitidoLancaInvalidRequest() {
+        assertThatThrownBy(() -> service.searchByTitle("x", new PageRequest(0, 10, "body", SortDirection.ASC)))
+                .isInstanceOf(InvalidRequestException.class);
+        verify(posts, never()).searchByTitle(any(), any());
+    }
+
+    @Test
+    void searchConverteDatasParaIntervaloUtcComDiaFinalIncluido() {
+        var request = new PageRequest(0, 10, "createdAt", SortDirection.DESC);
+        var page = new PageResult<Post>(java.util.List.of(), 0, 0, 10);
+        when(posts.search("docker", Instant.parse("2026-02-01T00:00:00Z"), Instant.parse("2026-03-01T00:00:00Z"), request))
+                .thenReturn(page);
+
+        assertThat(service.search(" docker ", LocalDate.parse("2026-02-01"), LocalDate.parse("2026-02-28"), request))
+                .isSameAs(page);
+    }
+
+    @Test
+    void searchSemFiltrosRepassaNulos() {
+        var request = new PageRequest(0, 10, "createdAt", SortDirection.DESC);
+        var page = new PageResult<Post>(java.util.List.of(), 0, 0, 10);
+        when(posts.search(null, null, null, request)).thenReturn(page);
+
+        assertThat(service.search("  ", null, null, request)).isSameAs(page);
+    }
+
+    @Test
+    void searchComMinDateDepoisDeMaxDateLancaInvalidRequest() {
+        var request = new PageRequest(0, 10, "createdAt", SortDirection.DESC);
+
+        assertThatThrownBy(() -> service.search(null, LocalDate.parse("2026-03-01"), LocalDate.parse("2026-02-01"), request))
+                .isInstanceOf(InvalidRequestException.class);
+        verify(posts, never()).search(any(), any(), any(), any());
     }
 }

@@ -2,9 +2,11 @@ package com.modestoneto.posts.adapter.out.persistence;
 
 import com.modestoneto.posts.application.port.out.UserRepositoryPort;
 import com.modestoneto.posts.domain.exception.ConflictException;
+import com.modestoneto.posts.domain.model.AuthorRanking;
 import com.modestoneto.posts.domain.model.User;
 import com.modestoneto.posts.application.common.PageRequest;
 import com.modestoneto.posts.application.common.PageResult;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
@@ -48,5 +50,12 @@ class UserPersistenceAdapter implements UserRepositoryPort {
         } catch (DataIntegrityViolationException e) {
             throw new ConflictException("Usuário possui posts e não pode ser removido: " + id);
         }
+    }
+
+    @Override
+    public List<AuthorRanking> ranking(int limit) {
+        return repository.ranking(limit).stream()
+                .map(r -> new AuthorRanking(r.getUserId(), r.getName(), r.getPostCount()))
+                .toList();
     }
 }

@@ -2,6 +2,7 @@ package com.modestoneto.posts.adapter.in.web;
 
 import com.modestoneto.posts.application.port.in.CreateUserUseCase;
 import com.modestoneto.posts.application.port.in.DeleteUserUseCase;
+import com.modestoneto.posts.application.port.in.FindAuthorRankingUseCase;
 import com.modestoneto.posts.application.port.in.FindPostsByAuthorUseCase;
 import com.modestoneto.posts.application.port.in.FindUserByIdUseCase;
 import com.modestoneto.posts.application.port.in.FindUsersUseCase;
@@ -9,6 +10,7 @@ import com.modestoneto.posts.application.port.in.UpdateUserUseCase;
 import com.modestoneto.posts.domain.model.User;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,16 +33,19 @@ class UserController {
     private final UpdateUserUseCase updateUser;
     private final DeleteUserUseCase deleteUser;
     private final FindPostsByAuthorUseCase findPostsByAuthor;
+    private final FindAuthorRankingUseCase findAuthorRanking;
 
     UserController(FindUsersUseCase findUsers, FindUserByIdUseCase findUserById,
                    CreateUserUseCase createUser, UpdateUserUseCase updateUser,
-                   DeleteUserUseCase deleteUser, FindPostsByAuthorUseCase findPostsByAuthor) {
+                   DeleteUserUseCase deleteUser, FindPostsByAuthorUseCase findPostsByAuthor,
+                   FindAuthorRankingUseCase findAuthorRanking) {
         this.findUsers = findUsers;
         this.findUserById = findUserById;
         this.createUser = createUser;
         this.updateUser = updateUser;
         this.deleteUser = deleteUser;
         this.findPostsByAuthor = findPostsByAuthor;
+        this.findAuthorRanking = findAuthorRanking;
     }
 
     @GetMapping
@@ -80,5 +85,10 @@ class UserController {
                                          @RequestParam(defaultValue = "20") int size,
                                          @RequestParam(defaultValue = "createdAt,desc") String sort) {
         return PageResponse.from(findPostsByAuthor.findByAuthor(id, PageParams.of(page, size, sort)), PostResponse::from);
+    }
+
+    @GetMapping("/ranking")
+    List<AuthorRankingResponse> ranking(@RequestParam(defaultValue = "10") int limit) {
+        return findAuthorRanking.ranking(limit).stream().map(AuthorRankingResponse::from).toList();
     }
 }

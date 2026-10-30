@@ -2,13 +2,17 @@
 
 API REST de uma mini rede social (usuários, posts e comentários) com Spring Boot e MySQL, organizada em arquitetura hexagonal.
 
-> Em construção. Este README cresce junto com o projeto.
+Usuários criam posts e comentam posts de outros usuários. A API tem CRUD de usuários, criação e consulta de posts com comentários, listagens paginadas, duas buscas e um ranking de autores. A documentação interativa (Swagger UI) sobe junto com a aplicação.
 
 ## Tecnologias
 - Java 21, Spring Boot 4.1
 - Spring Web MVC, Spring Data JPA, Hibernate
 - MySQL 8 (Docker), Flyway
 - Bean Validation, Maven
+- springdoc-openapi 3.2.0 (OpenAPI e Swagger UI)
+- Testes: JUnit 5, Mockito, Testcontainers (MySQL), ArchUnit
+
+> Desvio consciente: a série 3.0.x do springdoc foi compilada contra o Boot 4.0.x. Usei a 3.2.0, compilada contra o Boot 4.1.x, e ela funciona com o Boot 4.1.1 do projeto (há teste de fumaça em `OpenApiTest`).
 
 ## Como rodar
 Pré-requisitos: JDK 21 ou superior, Docker Desktop e Git.
@@ -27,7 +31,8 @@ Pré-requisitos: JDK 21 ou superior, Docker Desktop e Git.
    ```
    .\mvnw.cmd spring-boot:run
    ```
-5. Para os testes (o MySQL precisa estar de pé):
+5. Abra a documentação interativa: http://localhost:8080/swagger-ui.html (o JSON do OpenAPI fica em http://localhost:8080/v3/api-docs).
+6. Para os testes, veja a seção [Testes](#testes) (só precisam do Docker aberto):
    ```
    .\mvnw.cmd test
    ```
@@ -45,6 +50,57 @@ com.modestoneto.posts
  └─ config
 ```
 
+```mermaid
+flowchart LR
+    Cliente([Cliente HTTP]) --> Web
+    subgraph Adaptadores
+        Web["adapter.in.web<br/>controllers e DTOs"]
+        Persistencia["adapter.out.persistence<br/>entidades JPA e repositórios"]
+    end
+    subgraph Nucleo["Núcleo"]
+        PortIn["application.port.in<br/>casos de uso"]
+        Service["application.service"]
+        PortOut["application.port.out"]
+        Dominio["domain"]
+    end
+    Web --> PortIn
+    PortIn -.implementada por.-> Service
+    Service --> PortOut
+    Service --> Dominio
+    Persistencia -.implementa.-> PortOut
+    Persistencia --> MySQL[(MySQL)]
+```
+
+As dependências apontam para dentro: o núcleo (`domain` e `application`) não conhece Spring Data, JPA, Jackson nem Swagger, e `adapter.in` e `adapter.out` não se conhecem. Os testes de arquitetura (ArchUnit) falham se alguém quebrar essas regras.
+
+## Modelo de dados
+```mermaid
+erDiagram
+    USERS ||--o{ POSTS : escreve
+    USERS ||--o{ COMMENTS : comenta
+    POSTS ||--o{ COMMENTS : recebe
+    USERS {
+        bigint id PK
+        varchar name
+        varchar email UK
+        datetime created_at
+    }
+    POSTS {
+        bigint id PK
+        bigint author_id FK
+        varchar title
+        text body
+        datetime created_at
+    }
+    COMMENTS {
+        bigint id PK
+        bigint post_id FK
+        bigint author_id FK
+        text text
+        datetime created_at
+    }
+```
+
 ## Origem e créditos
 Projeto de estudo baseado no curso "Java COMPLETO" (Udemy). O curso usa arquitetura em camadas; aqui o domínio e os casos de uso são os mesmos, mas a estrutura foi **adaptada para arquitetura hexagonal**. Esta é, portanto, uma versão adaptada, não uma cópia do projeto original.
 
@@ -60,6 +116,16 @@ Listagem de 6 posts com 13 comentários e seus autores, medida pelo log SQL do H
 |---|---|
 | Antes (listagem padrão, tudo LAZY) | **10** (1 de posts + 6 de comentários + 3 de autores) |
 | Depois (`@EntityGraph` com `author`, `comments`, `comments.author`) | **1** |
+
+Evidência: log SQL do Hibernate (`org.hibernate.SQL=DEBUG`) da listagem sem fetch, extraído do teste de controle `contadorDeConsultasDetectaN1QuandoNaoHaEntityGraph` (colunas abreviadas):
+
+```
+select ... from posts                                         -- 1 consulta de posts
+select ... from comments where post_id=? order by ...         -- repetida 6 vezes, uma por post
+select ... from users where id=?                              -- repetida 3 vezes, uma por autor
+```
+
+Depois, com `@EntityGraph`, a mesma leitura vira uma única consulta: `select ... from posts ... left join comments ... left join users ...`.
 
 A correção fica no repositório do adaptador, sem tocar no domínio.
 
@@ -98,3 +164,29 @@ Em versões anteriores do Hibernate o comportamento pode ser outro. Vale repetir
 - **Datas** em ISO 8601 (`AAAA-MM-DD`), interpretadas em **UTC**. `minDate` e `maxDate` incluem o dia inteiro.
 - **Maiúsculas e acentos:** o MySQL 8 usa a collation `utf8mb4_0900_ai_ci`, que ignora os dois. Buscar `paginacao` encontra "Paginação".
 - **Limite:** `lower(...) like` não usa índice, então a busca varre a tabela. Para volume maior, o caminho é um índice `FULLTEXT`.
+
+## Testes
+`.\mvnw.cmd test` roda toda a suíte (inclui um teste de fumaça do OpenAPI). **Exige o Docker Desktop aberto**, mas **não** o `docker compose up` nem o `.env`: os testes de banco sobem o próprio MySQL 8.0 descartável com o Testcontainers, e ele é removido no fim. A primeira execução baixa a imagem `mysql:8.0`.
+
+| Camada | Como | O que cobre |
+|---|---|---|
+| Domínio | JUnit puro | `Post.addComment` (imutável, ordem dos comentários) |
+| Casos de uso | Mockito, portas simuladas | regras, normalização, 404 e 400 antes de consultar o banco |
+| Controllers | `@WebMvcTest`, casos de uso em `@MockitoBean` | 200, 201, 204, 400, 404 e 409, no formato de erro padrão |
+| Adaptadores de persistência | `@DataJpaTest` + Testcontainers (MySQL real, não H2) | índice único, chave estrangeira, paginação com desempate, busca com `EXISTS`, ranking nativo |
+| N+1 | estatísticas do Hibernate | cada listagem faz um número fixo de queries, que não cresce com os dados |
+| Arquitetura | ArchUnit | domínio sem frameworks; aplicação sem Spring Data nem JPA; núcleo sem Jackson nem Swagger e sem depender de adaptadores; controllers só usam portas de entrada; `adapter.in` e `adapter.out` não se conhecem |
+
+Os testes de adaptador partem do seed das migrações (3 usuários, 6 posts, 12 comentários) e cada um faz rollback. Quem alterar o seed precisa ajustar esses testes.
+
+## Limitações
+- Sem autenticação nem autorização: `authorId` vem no corpo da requisição.
+- Sem edição ou remoção de posts e comentários.
+- A busca por texto (`lower(...) like`) varre a tabela e não usa índice.
+- Datas em UTC, sem fuso por usuário.
+
+## Possíveis evoluções
+- Autenticação (Spring Security com JWT) e autor tirado do token.
+- Índice `FULLTEXT` para a busca por texto.
+- Edição e remoção de posts e comentários.
+- Rodar os testes em CI (GitHub Actions com Docker).

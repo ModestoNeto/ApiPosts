@@ -9,6 +9,7 @@ API REST de uma mini rede social (usuários, posts e comentários) com Spring Bo
 - Spring Web MVC, Spring Data JPA, Hibernate
 - MySQL 8 (Docker), Flyway
 - Bean Validation, Maven
+- Testes: JUnit 5, Mockito, Testcontainers (MySQL), ArchUnit
 
 ## Como rodar
 Pré-requisitos: JDK 21 ou superior, Docker Desktop e Git.
@@ -27,7 +28,7 @@ Pré-requisitos: JDK 21 ou superior, Docker Desktop e Git.
    ```
    .\mvnw.cmd spring-boot:run
    ```
-5. Para os testes (o MySQL precisa estar de pé):
+5. Para os testes, veja a seção [Testes](#testes) (só precisam do Docker aberto):
    ```
    .\mvnw.cmd test
    ```
@@ -98,3 +99,17 @@ Em versões anteriores do Hibernate o comportamento pode ser outro. Vale repetir
 - **Datas** em ISO 8601 (`AAAA-MM-DD`), interpretadas em **UTC**. `minDate` e `maxDate` incluem o dia inteiro.
 - **Maiúsculas e acentos:** o MySQL 8 usa a collation `utf8mb4_0900_ai_ci`, que ignora os dois. Buscar `paginacao` encontra "Paginação".
 - **Limite:** `lower(...) like` não usa índice, então a busca varre a tabela. Para volume maior, o caminho é um índice `FULLTEXT`.
+
+## Testes
+`.\mvnw.cmd test` roda tudo (93 testes). **Exige o Docker Desktop aberto**, mas **não** o `docker compose up` nem o `.env`: os testes de banco sobem o próprio MySQL 8.0 descartável com o Testcontainers, e ele é removido no fim. A primeira execução baixa a imagem `mysql:8.0`.
+
+| Camada | Como | O que cobre |
+|---|---|---|
+| Domínio | JUnit puro | `Post.addComment` (imutável, ordem dos comentários) |
+| Casos de uso | Mockito, portas simuladas | regras, normalização, 404 e 400 antes de consultar o banco |
+| Controllers | `@WebMvcTest`, casos de uso em `@MockitoBean` | 200, 201, 204, 400, 404 e 409, no formato de erro padrão |
+| Adaptadores de persistência | `@DataJpaTest` + Testcontainers (MySQL real, não H2) | índice único, chave estrangeira, paginação com desempate, busca com `EXISTS`, ranking nativo |
+| N+1 | estatísticas do Hibernate | cada listagem faz um número fixo de queries, que não cresce com os dados |
+| Arquitetura | ArchUnit | domínio sem frameworks; aplicação sem Spring Data nem JPA; núcleo sem Jackson nem Swagger e sem depender de adaptadores; controllers só usam portas de entrada; `adapter.in` e `adapter.out` não se conhecem |
+
+Os testes de adaptador partem do seed das migrações (3 usuários, 6 posts, 12 comentários) e cada um faz rollback. Quem alterar o seed precisa ajustar esses testes.
